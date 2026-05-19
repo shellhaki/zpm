@@ -1,15 +1,20 @@
 const std = @import("std");
+const start = @import("handlers/start.zig");
+const stop = @import("handlers/stop.zig");
+const reg = @import("registry.zig");
+const list = @import("handlers/list.zig");
+const purge = @import("handlers/purge.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
     const allocator = gpa.allocator();
+    try reg.load(allocator);
 
     var args = try std.process.argsWithAllocator(allocator);
     defer args.deinit();
 
-    // skip program name
     _ = args.next();
 
     const cmd = args.next() orelse {
@@ -21,21 +26,13 @@ pub fn main() !void {
     };
 
     if (std.mem.eql(u8, cmd, "start")) {
-        std.debug.print(
-            "process started\n",
-            .{},
-        );
+        start.handleStart(&args);
     } else if (std.mem.eql(u8, cmd, "stop")) {
-        std.debug.print(
-            "process stopped\n",
-            .{},
-        );
+        stop.handleStop(&args);
     } else if (std.mem.eql(u8, cmd, "list")) {
-        std.debug.print(
-            "listing processes...\n",
-            .{},
-        );
-    } else {
+        list.handleList();
+    } else if (std.mem.eql(u8, cmd, "purge")) {
+        purge.handlePurge(&args);
         std.debug.print(
             "unknown command: {s}\n",
             .{cmd},
