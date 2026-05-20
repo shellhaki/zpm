@@ -1,4 +1,5 @@
 # ZPM
+(README IS AI GENERATED !!!)
 
 ZPM is a small Zig process manager for starting, listing, stopping, and removing local background processes.
 
