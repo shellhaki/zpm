@@ -55,7 +55,7 @@ zig version
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/zpm.git
+git clone https://github.com/shellhaki/zpm.git
 cd zpm
 ```
 

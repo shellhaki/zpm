@@ -33,6 +33,7 @@ pub fn main() !void {
         list.handleList();
     } else if (std.mem.eql(u8, cmd, "purge")) {
         purge.handlePurge(&args);
+    } else {
         std.debug.print(
             "unknown command: {s}\n",
             .{cmd},

@@ -156,6 +156,9 @@ User Input: zpm start --name app "node server.js"
 main.zig: Parse args
     ↓
 handlers/start.zig: Extract name & command
+    ├─ If command provided: use it
+    ├─ Else: load package.json scripts.<name>
+    └─ Default script name: "start"
     ↓
 registry.zig:
     ├─ spawn child process via fork/exec
@@ -165,6 +168,11 @@ registry.zig:
     ↓
 zpm.json: Updated with new entry
 ```
+
+Examples:
+- `zpm start --name app "node server.js"` uses an explicit command
+- `zpm start --name app` uses `package.json` `scripts.start`
+- `zpm start --name app --script dev` uses `package.json` `scripts.dev`
 
 ### Listing Processes
 

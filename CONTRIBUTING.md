@@ -19,7 +19,7 @@ Be respectful and constructive in all interactions. We're building a welcoming c
 ## Development Setup
 
 ```bash
-git clone https://github.com/yourusername/zpm.git
+git clone https://github.com/shellhaki/zpm.git
 cd zpm
 zig build
 
@@ -152,6 +152,37 @@ Closes #123
 - Multi-user support
 - Process monitoring dashboard
 - Cross-platform support
+
+## Extending Package.json Support
+
+The start handler can be extended to support other package managers and configuration files:
+
+### Adding Support for pyproject.toml (Python)
+
+```zig
+fn getPythonScript(allocator: std.mem.Allocator, script_name: []const u8) ?[]const u8 {
+    // Parse pyproject.toml
+    // Extract [tool.scripts] or [project.scripts]
+    // Return command
+}
+```
+
+### Adding Support for Makefile
+
+```zig
+fn getMakeTarget(allocator: std.mem.Allocator, target_name: []const u8) ?[]const u8 {
+    // Parse Makefile
+    // Extract target command
+    // Return command
+}
+```
+
+**How to Contribute:**
+1. Implement the parsing function
+2. Add to start handler
+3. Document in README
+4. Add tests/examples
+5. Submit PR!
 
 ## Reporting Bugs
 

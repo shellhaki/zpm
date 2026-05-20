@@ -6,7 +6,7 @@ Get up and running with ZPM in 5 minutes.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/zpm.git
+git clone https://github.com/shellhaki/zpm.git
 cd zpm
 
 # Build the project
@@ -64,6 +64,16 @@ hello  [running]  sleep 300
 
 ```bash
 ./zpm purge hello
+```
+
+### 6. Run package.json scripts
+
+In a JavaScript project, `zpm start` can read scripts from `package.json`:
+
+```bash
+./zpm start --name myapp              # runs scripts.start
+./zpm start --name myapp --script dev # runs scripts.dev
+./zpm start --name myapp "npm run build"
 ```
 
 ## Next: Test with Real Server

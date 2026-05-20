@@ -1,6 +1,21 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const registry = @import("registry.zig");
 const posix = std.posix;
+
+extern fn setsid() c_int;
+
+fn currentEnvironment() [*:null]const ?[*:0]const u8 {
+    return @as([*:null]const ?[*:0]const u8, @ptrCast(std.os.environ.ptr));
+}
+
+fn detachSession() void {
+    switch (builtin.os.tag) {
+        .linux => _ = std.os.linux.setsid(),
+        .macos => _ = setsid(),
+        else => {},
+    }
+}
 
 const Command = union(enum) {
     start: struct { name: []const u8, command: []const u8 },
@@ -46,9 +61,9 @@ fn spawnProcess(allocator: std.mem.Allocator, command: []const u8) !u32 {
     const pid = try posix.fork();
 
     if (pid == 0) {
-        _ = try posix.setsid();
+        detachSession();
         const argv: [*:null]const ?[*:0]const u8 = @ptrCast(args.items.ptr);
-        return posix.execveZ(args.items[0].?, argv, std.c.environ);
+        return posix.execveZ(args.items[0].?, argv, currentEnvironment());
     }
 
     return @intCast(pid);

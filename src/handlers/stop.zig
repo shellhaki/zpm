@@ -7,6 +7,11 @@ pub fn handleStop(args: *std.process.ArgIterator) void {
         return;
     };
 
+    if (!registry.stopProcess(name)) {
+        std.debug.print("process not found or could not be stopped: {s}\n", .{name});
+        return;
+    }
+
     registry.remove(name);
 
     std.debug.print("process marked as stopped\n", .{});

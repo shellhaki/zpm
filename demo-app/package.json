@@ -1,0 +1,10 @@
+{
+  "name": "demo-app",
+  "version": "1.0.0",
+  "description": "Demo app for ZPM package.json support",
+  "scripts": {
+    "start": "echo 'Starting production server...' && sleep 60",
+    "dev": "echo 'Starting dev server with watch...' && sleep 60",
+    "test": "echo 'Running tests...' && sleep 10"
+  }
+}
