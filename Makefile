@@ -1,0 +1,2 @@
+b:
+	odin build .

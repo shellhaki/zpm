@@ -1,9 +1,0 @@
-zig-cache/
-zig-out/
-test-server/
-build-cross/
-releases/
-zpm.json
-*/zpm.json
-.agents/
-.codex/
