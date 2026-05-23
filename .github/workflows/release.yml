@@ -50,7 +50,7 @@ jobs:
         run: |
           mkdir -p dist/zpm-${{ matrix.goos }}-${{ matrix.goarch }}
           cd src
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 go build -o ../dist/zpm-${{ matrix.goos }}-${{ matrix.goarch }}/zpp${{ matrix.ext }}
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 go build -o ../dist/zpm-${{ matrix.goos }}-${{ matrix.goarch }}/zpm${{ matrix.ext }}
           cd ../daemon
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 go build -o ../dist/zpm-${{ matrix.goos }}-${{ matrix.goarch }}/zpmd${{ matrix.ext }}
           cd ..
