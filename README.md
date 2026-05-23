@@ -1,95 +1,144 @@
 # ZPM
-(README IS AI GENERATED !!!)
 
-ZPM is a small Zig process manager for starting, listing, stopping, and removing local background processes.
+[![Go](https://img.shields.io/badge/Go-1.22-00ADD8?style=for-the-badge&logo=go)](https://go.dev/)
+[![Linux](https://img.shields.io/badge/Linux-ready-FCC624?style=for-the-badge&logo=linux&logoColor=000)](#)
+[![macOS](https://img.shields.io/badge/macOS-ready-000000?style=for-the-badge&logo=apple)](#)
+[![Windows](https://img.shields.io/badge/Windows-ready-0078D4?style=for-the-badge&logo=windows)](#)
 
-Current support: Linux and macOS. Windows support is planned, but the current code uses POSIX process APIs.
+**ZPM is a small, sharp process manager for apps you want to keep alive.**
 
-## Install
+It gives you a daemon, named processes, crash restart, log following, clusters, environment profiles, health checks, log rotation, startup on boot, and ecosystem config files without turning your terminal into a carnival.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh | sh
-```
-
-The installer downloads the latest GitHub release for your OS/CPU and installs `zpm` and `zpmd` into `~/.local/bin`.
-
-To install a specific release:
+## Install From Source
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh | ZPM_TAG=v0.1.0 sh
+go build -o daemon/zpmd ./daemon
+go build -o src/zpm ./src
+ln -sf "$PWD/src/zpm" ~/.local/bin/zpp
 ```
 
-## Build From Source
+Keep `zpmd` beside the CLI or set:
 
 ```bash
-git clone https://github.com/shellhaki/zpm.git
-cd zpm
-zig build
-./zig-out/bin/zpm list
+export ZPMD_PATH=/path/to/zpmd
 ```
 
-Cross-platform release archives can be built with:
+## Daemon
 
 ```bash
-scripts/build-cross.sh
+zpp daemon start
+zpp daemon stop
+zpp daemon reload
 ```
 
-## Commands
+Start on login:
 
 ```bash
-zpm start --name api "node server.js"
-zpm start --name web              # uses package.json scripts.start
-zpm start --name web --script dev # uses package.json scripts.dev
-zpm list
-zpm stop api
-zpm purge api
+zpp startup install
+zpp startup uninstall
 ```
 
-ZPM stores process state in `zpm.json` in the directory where you run it.
+Linux uses user systemd, macOS uses LaunchAgent, Windows uses Task Scheduler.
 
-## Releases
+## Run Apps
 
-Pushing to `main` runs GitHub Actions, cross-compiles Linux/macOS archives, and publishes a rolling `main-latest` GitHub release.
+```bash
+zpp start "bun index" --name api --follow
+zpp status
+zpp stop api
+zpp restart api
+zpp start api
+zpp purge api
+```
 
-Pushing a `v*` tag publishes that tag as a normal release:
+ZPM starts commands from the directory where you run `zpp start`, so package scripts work naturally.
+
+```json
+{
+  "scripts": {
+    "serve:zpm": "zpp start \"bun index\" --name api --follow"
+  }
+}
+```
+
+## PM2-Style Features
+
+```bash
+zpp start "bun index" --name api --env production
+zpp start "bun index" --name api --env PORT=3000
+zpp start "bun index" --name api --instances 4
+zpp start "bun index" --name api --restart-delay 1000 --max-restarts 10
+zpp start "bun index" --name api --health "curl -fsS http://127.0.0.1:3000/health"
+zpp start "bun index" --name api --log-max-size 20mb --log-backups 7
+```
+
+Cluster instances are named `api-0`, `api-1`, etc. Group commands work:
+
+```bash
+zpp stop api
+zpp restart api
+zpp purge api
+```
+
+## Ecosystem Config
+
+Create `zpm.config.json`:
+
+```json
+{
+  "apps": [
+    {
+      "name": "api",
+      "command": "bun index",
+      "cwd": ".",
+      "instances": 2,
+      "auto_restart": true,
+      "restart_delay": 1000,
+      "max_restarts": -1,
+      "health_command": "curl -fsS http://127.0.0.1:3000/health",
+      "log_max_bytes": 10485760,
+      "log_backups": 5,
+      "env": {
+        "PORT": "3000"
+      },
+      "env_production": {
+        "NODE_ENV": "production"
+      }
+    }
+  ]
+}
+```
+
+Run it:
+
+```bash
+zpp ecosystem start zpm.config.json --env production
+```
+
+## Storage
+
+ZPM stores state in your user config directory:
+
+```text
+registry.json
+daemon.pid
+daemon.log
+logs/<process>.log
+```
+
+On Linux that is usually `~/.config/zpm`.
+
+## Release
+
+Push a tag to publish cross-platform builds:
 
 ```bash
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-## Project Files
+The release pipeline builds:
 
-- `src/main.zig` - CLI entry point
-- `src/registry.zig` - process registry, spawning, and stop logic
-- `src/handlers/` - command handlers
-- `src/daemon.zig` - daemon skeleton for the next IPC step
-- `scripts/install.sh` - curl installer
-- `scripts/build-cross.sh` - release archive builder
-- `.github/workflows/release.yml` - automatic release pipeline
-
-## More Docs
-
-- [QUICKSTART.md](QUICKSTART.md)
-- [INSTALL.md](INSTALL.md)
-- [ARCHITECTURE.md](ARCHITECTURE.md)
-- [ROADMAP.md](ROADMAP.md)
-
-## License
-
-MIT. See [LICENSE](LICENSE).
-
-## TODO: Continue Here
-
-- [x] Keep README short and focused on install/build/use.
-- [x] Add `scripts/install.sh` for curl-based setup.
-- [x] Add `scripts/build-cross.sh` for Linux/macOS release archives.
-- [x] Add GitHub Actions release publishing on pushes to `main`.
-- [x] Store real PIDs when `zpm start` spawns a command.
-- [ ] Add tests for `start`, `stop`, `list`, and `purge`.
-- [ ] Replace direct registry writes with `zpm` to `zpmd` socket IPC.
-- [ ] Move registry storage out of the current working directory or make it configurable.
-- [ ] Add log capture and restart-on-crash support.
-- [ ] Add Windows support or clearly split POSIX-only code paths.
-
-Last touched: May 20, 2026.
+- Linux amd64, arm64
+- macOS amd64, arm64
+- Windows amd64

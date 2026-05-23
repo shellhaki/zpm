@@ -1,8 +1,7 @@
-name: Release
+name: release
 
 on:
   push:
-    branches: [main]
     tags:
       - "v*"
   workflow_dispatch:
@@ -12,69 +11,67 @@ permissions:
 
 jobs:
   build:
-    name: Build release archives
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            ext: ""
+          - goos: linux
+            goarch: arm64
+            ext: ""
+          - goos: darwin
+            goarch: amd64
+            ext: ""
+          - goos: darwin
+            goarch: arm64
+            ext: ""
+          - goos: windows
+            goarch: amd64
+            ext: ".exe"
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Zig
-        uses: goto-bus-stop/setup-zig@v2
+      - uses: actions/setup-go@v5
         with:
-          version: 0.12.0
+          go-version: "1.22.2"
 
-      - name: Build cross-platform archives
-        run: scripts/build-cross.sh
+      - name: Test daemon
+        working-directory: daemon
+        run: go test ./...
 
-      - name: Upload release archives
+      - name: Test cli
+        working-directory: src
+        run: go test ./...
+
+      - name: Build
+        run: |
+          mkdir -p dist/zpm-${{ matrix.goos }}-${{ matrix.goarch }}
+          cd src
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 go build -o ../dist/zpm-${{ matrix.goos }}-${{ matrix.goarch }}/zpp${{ matrix.ext }}
+          cd ../daemon
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 go build -o ../dist/zpm-${{ matrix.goos }}-${{ matrix.goarch }}/zpmd${{ matrix.ext }}
+          cd ..
+          cp README.md docs dist/zpm-${{ matrix.goos }}-${{ matrix.goarch }}/
+          tar -czf dist/zpm-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz -C dist zpm-${{ matrix.goos }}-${{ matrix.goarch }}
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: zpm-release-archives
-          path: releases/*.tar.gz
+          name: zpm-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*.tar.gz
 
   publish:
-    name: Publish GitHub release
     needs: build
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
         with:
-          fetch-depth: 0
-
-      - name: Download release archives
-        uses: actions/download-artifact@v4
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
         with:
-          name: zpm-release-archives
-          path: releases
-
-      - name: Choose release tag
-        id: release
-        run: |
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            tag="${GITHUB_REF_NAME}"
-            title="ZPM ${GITHUB_REF_NAME}"
-          else
-            tag="main-latest"
-            title="ZPM latest main"
-            git tag -f "$tag" "$GITHUB_SHA"
-            git push -f origin "refs/tags/$tag"
-          fi
-
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "title=$title" >> "$GITHUB_OUTPUT"
-
-      - name: Publish release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.release.outputs.tag }}
-          TITLE: ${{ steps.release.outputs.title }}
-        run: |
-          notes="Automated ZPM release for ${GITHUB_SHA}."
-
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" releases/*.tar.gz --clobber
-            gh release edit "$TAG" --title "$TITLE" --notes "$notes" --latest
-          else
-            gh release create "$TAG" releases/*.tar.gz --title "$TITLE" --notes "$notes" --latest
-          fi
+          files: dist/*.tar.gz
