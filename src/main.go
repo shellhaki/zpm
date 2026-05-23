@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,17 @@ import (
 )
 
 const addr = "127.0.0.1:4848"
+
+const (
+	ColorReset  = "\033[0m"
+	ColorBold   = "\033[1m"
+	ColorDim    = "\033[2m"
+	ColorGreen  = "\033[38;5;76m"
+	ColorRed    = "\033[38;5;196m"
+	ColorYellow = "\033[38;5;214m"
+	ColorCyan   = "\033[38;5;44m"
+	ColorGray   = "\033[38;5;244m"
+)
 
 type Request struct {
 	Action        string            `json:"action"`
@@ -166,7 +178,7 @@ func FindDaemon() (string, error) {
 
 func StartDaemon() error {
 	if DaemonRunning() {
-		fmt.Println("daemon already running")
+		fmt.Printf("  %s•%s %sDaemon is already running.%s\n", ColorCyan, ColorReset, ColorGray, ColorReset)
 		return nil
 	}
 	daemon, err := FindDaemon()
@@ -199,7 +211,7 @@ func StartDaemon() error {
 	logFile.Close()
 	for i := 0; i < 20; i++ {
 		if DaemonRunning() {
-			fmt.Println("daemon started")
+			fmt.Printf("  %s•%s Supervisor daemon started successfully.\n", ColorGreen, ColorReset)
 			return nil
 		}
 		time.Sleep(100 * time.Millisecond)
@@ -211,7 +223,7 @@ func StopDaemon() error {
 	if DaemonRunning() {
 		res, err := Send(Request{Action: "daemon-stop"})
 		if err == nil {
-			fmt.Println(res.Message)
+			fmt.Printf("  %s•%s %s\n", ColorYellow, ColorReset, res.Message)
 		}
 		for i := 0; i < 20; i++ {
 			if !DaemonRunning() {
@@ -245,7 +257,7 @@ func StopDaemon() error {
 	if DaemonRunning() {
 		return errors.New("daemon did not stop")
 	}
-	fmt.Println("daemon not running")
+	fmt.Printf("  %s•%s %sDaemon is not running.%s\n", ColorGray, ColorReset, ColorDim, ColorReset)
 	return nil
 }
 
@@ -276,6 +288,47 @@ func ParseBytes(value string) (int64, error) {
 		return 0, err
 	}
 	return number * multiplier, nil
+}
+
+func FormatBytes(kb int64) string {
+	b := kb * 1024
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
+}
+
+func FormatUptime(seconds int64) string {
+	if seconds <= 0 {
+		return "0s"
+	}
+	d := seconds / 86400
+	seconds %= 86400
+	h := seconds / 3600
+	seconds %= 3600
+	m := seconds / 60
+	s := seconds % 60
+
+	var parts []string
+	if d > 0 {
+		parts = append(parts, fmt.Sprintf("%dd", d))
+	}
+	if h > 0 {
+		parts = append(parts, fmt.Sprintf("%dh", h))
+	}
+	if m > 0 {
+		parts = append(parts, fmt.Sprintf("%dm", m))
+	}
+	if s > 0 || len(parts) == 0 {
+		parts = append(parts, fmt.Sprintf("%ds", s))
+	}
+	return strings.Join(parts, " ")
 }
 
 func ParseStart(args []string) (Request, bool, error) {
@@ -404,31 +457,105 @@ func Follow(path string) error {
 }
 
 func PrintProcess(res Response) {
+	var dotColor string
+	msgLower := strings.ToLower(res.Message)
+	if strings.Contains(msgLower, "error") || strings.Contains(msgLower, "fail") {
+		dotColor = ColorRed
+	} else if strings.Contains(msgLower, "stop") || strings.Contains(msgLower, "purge") {
+		dotColor = ColorYellow
+	} else if strings.Contains(msgLower, "start") || strings.Contains(msgLower, "success") {
+		dotColor = ColorGreen
+	} else {
+		dotColor = ColorCyan
+	}
+
 	if len(res.Processes) > 1 {
 		for _, process := range res.Processes {
-			fmt.Printf("%s %s pid=%d\n", res.Message, process.Name, process.Pid)
+			fmt.Printf("  %s•%s %-10s %s%s%s %s(PID: %d)%s\n",
+				dotColor, ColorReset, res.Message, ColorBold, process.Name, ColorReset, ColorGray, process.Pid, ColorReset)
 		}
 		return
 	}
 	if res.Pid > 0 {
-		fmt.Printf("%s %s pid=%d\n", res.Message, res.Name, res.Pid)
+		fmt.Printf("  %s•%s %-10s %s%s%s %s(PID: %d)%s\n",
+			dotColor, ColorReset, res.Message, ColorBold, res.Name, ColorReset, ColorGray, res.Pid, ColorReset)
 		return
 	}
 	if res.Name != "" {
-		fmt.Printf("%s %s\n", res.Message, res.Name)
+		fmt.Printf("  %s•%s %-10s %s%s%s\n",
+			dotColor, ColorReset, res.Message, ColorBold, res.Name, ColorReset)
 		return
 	}
-	fmt.Println(res.Message)
+	fmt.Printf("  %s•%s %s\n", dotColor, ColorReset, res.Message)
 }
 
 func PrintStatus(processes []Process) {
-	for _, p := range processes {
-		health := "ok"
-		if !p.Healthy && p.Status == "running" {
-			health = "bad"
-		}
-		fmt.Printf("%s\t%s\tpid=%d\tmem=%dkb\tuptime=%ds\trestarts=%d\thealth=%s\t%s\n", p.Name, p.Status, p.Pid, p.MemoryRssKB, p.UptimeSeconds, p.RestartCount, health, p.Command)
+	if len(processes) == 0 {
+		fmt.Printf("  %sNo active processes found under supervisor tracking.%s\n", ColorGray, ColorReset)
+		return
 	}
+
+	fmt.Println()
+	fmt.Printf("  %s%-18s %-10s %-8s %-10s %-12s %-10s %-8s %s\n",
+		ColorReset+ColorBold, "APP NAME", "STATUS", "PID", "MEMORY", "UPTIME", "RESTARTS", "HEALTH", "COMMAND"+ColorReset)
+	fmt.Printf("  %s%s%s\n", ColorDim, strings.Repeat("─", 94), ColorReset)
+
+	for _, p := range processes {
+		var statusStr string
+		switch p.Status {
+		case "running":
+			statusStr = fmt.Sprintf("%srunning%s", ColorGreen, ColorReset)
+		case "stopped":
+			statusStr = fmt.Sprintf("%sstopped%s", ColorYellow, ColorReset)
+		case "errored", "failed":
+			statusStr = fmt.Sprintf("%serrored%s", ColorRed, ColorReset)
+		default:
+			statusStr = p.Status
+		}
+
+		var healthStr string
+		if p.Status == "running" {
+			if p.Healthy {
+				healthStr = fmt.Sprintf("%sok%s", ColorGreen, ColorReset)
+			} else {
+				healthStr = fmt.Sprintf("%sbad%s", ColorRed, ColorReset)
+			}
+		} else {
+			healthStr = fmt.Sprintf("%s--%s", ColorGray, ColorReset)
+		}
+
+		pidStr := "--"
+		if p.Pid > 0 {
+			pidStr = strconv.Itoa(p.Pid)
+		}
+
+		memStr := "--"
+		if p.Status == "running" {
+			memStr = FormatBytes(p.MemoryRssKB)
+		}
+
+		uptimeStr := "--"
+		if p.Status == "running" {
+			uptimeStr = FormatUptime(p.UptimeSeconds)
+		}
+
+		displayCmd := p.Command
+		if len(displayCmd) > 22 {
+			displayCmd = displayCmd[:19] + "..."
+		}
+
+		fmt.Printf("  %-18s %-19s %-8s %-10s %-12s %-10d %-17s %s%s%s\n",
+			p.Name,
+			statusStr,
+			pidStr,
+			memStr,
+			uptimeStr,
+			p.RestartCount,
+			healthStr,
+			ColorDim, displayCmd, ColorReset,
+		)
+	}
+	fmt.Println()
 }
 
 func LoadEcosystem(path string, envName string) ([]Request, error) {
@@ -492,7 +619,7 @@ func StartupInstall() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("startup installed")
+	fmt.Printf("  %s•%s %sStartup initialization configuration written and verified.%s\n", ColorGreen, ColorReset, ColorGray, ColorReset)
 	return nil
 }
 
@@ -501,20 +628,92 @@ func StartupUninstall() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("startup removed")
+	fmt.Printf("  %s•%s %sStartup integration targets removed successfully.%s\n", ColorYellow, ColorReset, ColorGray, ColorReset)
+	return nil
+}
+
+func Uninstall() error {
+	fmt.Println()
+	fmt.Printf("  %s%sCRITICAL WARNING: Supervisor environment purge request received.%s\n", ColorRed, ColorBold, ColorReset)
+	fmt.Printf("  %s%s─────────────────────────────────────────────────────────────────%s\n", ColorDim, strings.Repeat("─", 33), ColorReset)
+	fmt.Println("  This complete removal window executes the following actions:")
+	fmt.Printf("    %s-%s Terminate background supervisor daemons safely\n", ColorRed, ColorReset)
+	fmt.Printf("    %s-%s Erase platform systemd/launchd service registration hooks\n", ColorRed, ColorReset)
+	fmt.Printf("    %s-%s Wipe local state directories, logging metrics, and caches\n\n", ColorRed, ColorReset)
+
+	fmt.Printf("  %sTo verify execution target parameters, type %syes%s%s to commit: ", ColorYellow, ColorBold, ColorReset, ColorYellow)
+	fmt.Print(ColorReset)
+
+	reader := bufio.NewReader(os.Stdin)
+	input, _ := reader.ReadString('\n')
+	input = strings.TrimSpace(input)
+
+	if input != "yes" {
+		fmt.Printf("\n  %s•%s Action abandoned. Maintenance footprint unchanged.\n\n", ColorCyan, ColorReset)
+		return nil
+	}
+
+	fmt.Printf("\n  %sProcessing Pipeline Tracks:%s\n", ColorBold, ColorReset)
+
+	fmt.Printf("    %-45s", "Stopping persistent supervisor runner state...")
+	stopDaemonByName(true)
+	fmt.Printf("[%sDONE%s]\n", ColorGreen, ColorReset)
+
+	fmt.Printf("    %-45s", "Dismantling global target run bindings...")
+	err := uninstallStartup()
+	if err != nil {
+		fmt.Printf("[%sWARN: %v%s]\n", ColorYellow, err, ColorReset)
+	} else {
+		fmt.Printf("[%sDONE%s]\n", ColorGreen, ColorReset)
+	}
+
+	fmt.Printf("    %-45s", "Scrubbing system storage footprints...")
+	dataDir := DataDir()
+	err = os.RemoveAll(dataDir)
+	if err != nil {
+		fmt.Printf("[%sWARN: %v%s]\n", ColorYellow, err, ColorReset)
+	} else {
+		fmt.Printf("[%sDONE%s]\n", ColorGreen, ColorReset)
+	}
+
+	fmt.Printf("\n  %s•%s Target environment registries clean.\n\n", ColorGreen, ColorReset)
+	fmt.Printf("  %sTo delete lingering system platform executable binaries directly, run:%s\n", ColorGray, ColorReset)
+
+	exe, err := os.Executable()
+	if err == nil {
+		exeDir := filepath.Dir(exe)
+		fmt.Printf("    %srm -f %s/zpm %s/zpmd%s\n", ColorCyan, exeDir, exeDir, ColorReset)
+	} else {
+		fmt.Printf("    %srm -f ~/.local/bin/zpm ~/.local/bin/zpmd%s\n", ColorCyan, ColorReset)
+	}
+
+	fmt.Printf("\n  %sNote:%s Check profile definitions to ensure your PATH setups are clean:\n", ColorYellow, ColorReset)
+	fmt.Printf("    %s~/.bashrc%s, %s~/.zshrc%s, or %s~/.bash_profile%s\n\n", ColorDim, ColorReset, ColorDim, ColorReset, ColorDim, ColorReset)
+
 	return nil
 }
 
 func Usage() {
-	fmt.Println("zpp daemon start|stop|reload")
-	fmt.Println("zpp startup install|uninstall")
-	fmt.Println("zpp start \"bun index\" --name app --env production --instances 2 --follow")
-	fmt.Println("zpp start app")
-	fmt.Println("zpp stop app")
-	fmt.Println("zpp restart app")
-	fmt.Println("zpp purge app")
-	fmt.Println("zpp status")
-	fmt.Println("zpp ecosystem start [zpm.config.json] --env production")
+	fmt.Printf("\n  %sZPM %sProcess Supervisor Interface%s\n\n", ColorBold, ColorGray, ColorReset)
+	fmt.Printf("  %sUsage:%s\n    zpp <command> [arguments]\n\n", ColorYellow, ColorReset)
+
+	fmt.Printf("  %sCore Process Control Suite:%s\n", ColorCyan, ColorReset)
+	fmt.Printf("    %-42s %sLaunch process inside manager lifecycle context%s\n", "start <cmd> [--name n] [--instances i]", ColorDim, ColorReset)
+	fmt.Printf("    %-42s %sRestore registered targeted app profiles%s\n", "start <app_name>", ColorDim, ColorReset)
+	fmt.Printf("    %-42s %sInstruct graceful instance drop signals%s\n", "stop <app_name>", ColorDim, ColorReset)
+	fmt.Printf("    %-42s %sForce rapid instance reset actions%s\n", "restart <app_name>", ColorDim, ColorReset)
+	fmt.Printf("    %-42s %sWipe specific context records and log dumps%s\n", "purge <app_name>", ColorDim, ColorReset)
+	fmt.Printf("    %-42s %sView live tabular diagnostic overview fields%s\n\n", "status | list", ColorDim, ColorReset)
+
+	fmt.Printf("  %sDaemon Supervision & States:%s\n", ColorCyan, ColorReset)
+	fmt.Printf("    %-42s %sModify daemon thread runtime states%s\n", "daemon start|stop|reload", ColorDim, ColorReset)
+	fmt.Printf("    %-42s %sManage supervisor initialization integrations%s\n\n", "startup install|uninstall", ColorDim, ColorReset)
+
+	fmt.Printf("  %sEcosystem Workspace Targets:%s\n", ColorCyan, ColorReset)
+	fmt.Printf("    %-42s %sBootstrap nested ecosystem definition matrices%s\n\n", "ecosystem start [config.json]", ColorDim, ColorReset)
+
+	fmt.Printf("  %sSystem Maintenance Suites:%s\n", ColorCyan, ColorReset)
+	fmt.Printf("    %-42s %sPurge supervisor structures from host profiles%s\n\n", "uninstall", ColorDim, ColorReset)
 }
 
 func main() {
@@ -543,7 +742,7 @@ func main() {
 			os.Exit(1)
 		}
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
 			os.Exit(1)
 		}
 	case "startup":
@@ -562,7 +761,7 @@ func main() {
 			os.Exit(1)
 		}
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
 			os.Exit(1)
 		}
 	case "ecosystem":
@@ -576,7 +775,7 @@ func main() {
 			switch args[i] {
 			case "--env":
 				if i+1 >= len(args) {
-					fmt.Fprintln(os.Stderr, "missing env")
+					fmt.Fprintf(os.Stderr, "%s[error]%s Missing value for environment parameter\n", ColorRed, ColorReset)
 					os.Exit(1)
 				}
 				envName = args[i+1]
@@ -587,13 +786,13 @@ func main() {
 		}
 		requests, err := LoadEcosystem(path, envName)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
 			os.Exit(1)
 		}
 		for _, req := range requests {
 			res, err := Send(req)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
+				fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
 				os.Exit(1)
 			}
 			PrintProcess(res)
@@ -602,25 +801,25 @@ func main() {
 		if len(args) >= 2 && args[1] == "daemon" {
 			err := StartDaemon()
 			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
+				fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
 				os.Exit(1)
 			}
 			return
 		}
 		req, follow, err := ParseStart(args[1:])
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
 			os.Exit(1)
 		}
 		cwd, err := os.Getwd()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
 			os.Exit(1)
 		}
 		req.Cwd = cwd
 		res, err := Send(req)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
 			os.Exit(1)
 		}
 		PrintProcess(res)
@@ -631,7 +830,7 @@ func main() {
 				err = Follow(res.LogPath)
 			}
 			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
+				fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
 				os.Exit(1)
 			}
 		}
@@ -642,17 +841,23 @@ func main() {
 		}
 		res, err := Send(Request{Action: args[0], Name: name})
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
 			os.Exit(1)
 		}
 		PrintProcess(res)
 	case "list", "status":
 		res, err := Send(Request{Action: "status"})
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
 			os.Exit(1)
 		}
 		PrintStatus(res.Processes)
+	case "uninstall":
+		err := Uninstall()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
+			os.Exit(1)
+		}
 	default:
 		Usage()
 		os.Exit(1)
