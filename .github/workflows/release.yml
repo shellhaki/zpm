@@ -54,7 +54,7 @@ jobs:
           cd ../daemon
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 go build -o ../dist/zpm-${{ matrix.goos }}-${{ matrix.goarch }}/zpmd${{ matrix.ext }}
           cd ..
-          cp README.md docs dist/zpm-${{ matrix.goos }}-${{ matrix.goarch }}/
+          cp README.md dist/zpm-${{ matrix.goos }}-${{ matrix.goarch }}/
           tar -czf dist/zpm-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz -C dist zpm-${{ matrix.goos }}-${{ matrix.goarch }}
 
       - name: Upload artifact
