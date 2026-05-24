@@ -1,0 +1,74 @@
+/* Mobile-first responsive fixes for ZPM docs */
+
+/* Scrollable tables on small screens */
+table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Don't nowrap short tables on large screens */
+@media (min-width: 768px) {
+  table {
+    display: table;
+    white-space: normal;
+  }
+}
+
+/* Code blocks: horizontal scroll, no overflow bleed */
+pre {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+/* Inline code: allow wrapping so it doesn't push layout */
+:not(pre) > code {
+  word-break: break-word;
+}
+
+/* Hero tagline: smaller on mobile */
+@media (max-width: 480px) {
+  .hero .tagline {
+    font-size: 1rem;
+  }
+
+  .hero .sl-flex {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero .sl-flex a {
+    text-align: center;
+    justify-content: center;
+  }
+}
+
+/* CardGrid: force single column on small screens */
+@media (max-width: 600px) {
+  .sl-card-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Tabs: allow tab labels to scroll horizontally on tiny screens */
+@media (max-width: 480px) {
+  [role="tablist"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+  }
+
+  [role="tab"] {
+    white-space: nowrap;
+  }
+}
+
+/* Content area: reduce horizontal padding on mobile */
+@media (max-width: 480px) {
+  .sl-markdown-content {
+    padding-inline: 0.75rem;
+  }
+}

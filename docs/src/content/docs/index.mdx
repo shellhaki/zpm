@@ -1,0 +1,260 @@
+---
+title: ZPM — Process Manager
+description: A small, sharp process manager for apps you want to keep alive.
+template: splash
+hero:
+  tagline: Keep your apps alive. Crash restart, clusters, log rotation, health checks, and ecosystem configs — without turning your terminal into a carnival.
+  actions:
+    - text: Get started
+      link: /#install
+      icon: right-arrow
+    - text: GitHub
+      link: https://github.com/shellhaki/zpm
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+
+## Install
+
+<Tabs>
+  <TabItem label="Linux / macOS">
+    ```bash
+    curl -sL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh | bash
+    ```
+  </TabItem>
+  <TabItem label="Windows (PowerShell)">
+    ```powershell
+    iex (curl.exe -UseBasicParsing https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install-windows.ps1)
+    ```
+  </TabItem>
+  <TabItem label="From source">
+    ```bash
+    go build -o daemon/zpmd ./daemon
+    go build -o src/zpm ./src
+    ln -sf "$PWD/src/zpm" ~/.local/bin/zpm
+    ```
+  </TabItem>
+</Tabs>
+
+After installation:
+
+```bash
+zpm --help          # see available commands
+zpm list            # list managed processes
+zpm start script.js # start managing a process
+```
+
+---
+
+## Features
+
+<CardGrid stagger>
+  <Card title="Crash restart" icon="rocket">
+    Processes come back up automatically. Configure delay, max restarts, and backoff per process.
+  </Card>
+  <Card title="Clusters" icon="random">
+    Spin up N instances with `--instances`. Named `api-0`, `api-1`, etc. Group commands work on all of them.
+  </Card>
+  <Card title="Health checks" icon="heart">
+    Run any shell command as a health probe. ZPM restarts unhealthy processes automatically.
+  </Card>
+  <Card title="Log rotation" icon="document">
+    Cap log file size and keep N backups. No manual cleanup, no disk surprises.
+  </Card>
+  <Card title="Environment profiles" icon="setting">
+    Named env profiles in your ecosystem config. Switch between `production`, `staging`, and more at runtime.
+  </Card>
+  <Card title="Startup on boot" icon="laptop">
+    Native integration with systemd, LaunchAgent, and Task Scheduler. One command to install.
+  </Card>
+  <Card title="Ecosystem config" icon="open-book">
+    Declare all your processes in a single `zpm.config.json`. Version-controllable and shareable.
+  </Card>
+  <Card title="Built in Go" icon="seti:go">
+    Single static binary. No runtime, no dependencies. Ships with a daemon and a CLI.
+  </Card>
+</CardGrid>
+
+---
+
+## Run apps
+
+```bash
+zpm start "bun index" --name api --follow
+zpm status
+zpm stop api
+zpm restart api
+zpm purge api
+```
+
+ZPM starts commands from the directory where you run `zpm start`, so package scripts work naturally:
+
+```json
+{
+  "scripts": {
+    "serve:zpm": "zpm start \"bun index\" --name api --follow"
+  }
+}
+```
+
+---
+
+## Flags
+
+```bash
+zpm start "bun index" --name api --env production
+zpm start "bun index" --name api --env PORT=3000
+zpm start "bun index" --name api --instances 4
+zpm start "bun index" --name api --restart-delay 1000 --max-restarts 10
+zpm start "bun index" --name api --health "curl -fsS http://127.0.0.1:3000/health"
+zpm start "bun index" --name api --log-max-size 20mb --log-backups 7
+```
+
+Cluster instances are named `api-0`, `api-1`, etc. Group commands apply to all:
+
+```bash
+zpm stop api
+zpm restart api
+zpm purge api
+```
+
+---
+
+## Daemon
+
+```bash
+zpm daemon start
+zpm daemon stop
+zpm daemon reload
+```
+
+Register the daemon to start on login:
+
+```bash
+zpm startup install
+zpm startup uninstall
+```
+
+| Platform    | Managed by          | Enable command                                                            |
+|-------------|---------------------|---------------------------------------------------------------------------|
+| **Linux**   | systemd user service | `systemctl --user enable zpmd`                                           |
+| **macOS**   | LaunchAgent         | `launchctl load ~/Library/LaunchAgents/com.zpm.daemon.plist`             |
+| **Windows** | Task Scheduler      | Auto-configured when installer is run as Administrator                   |
+
+---
+
+## Ecosystem config
+
+Create `zpm.config.json`:
+
+```json
+{
+  "apps": [
+    {
+      "name": "api",
+      "command": "bun index",
+      "cwd": ".",
+      "instances": 2,
+      "auto_restart": true,
+      "restart_delay": 1000,
+      "max_restarts": -1,
+      "health_command": "curl -fsS http://127.0.0.1:3000/health",
+      "log_max_bytes": 10485760,
+      "log_backups": 5,
+      "env": {
+        "PORT": "3000"
+      },
+      "env_production": {
+        "NODE_ENV": "production"
+      }
+    }
+  ]
+}
+```
+
+Run it:
+
+```bash
+zpm ecosystem start zpm.config.json --env production
+```
+
+---
+
+## Storage
+
+ZPM stores state in your user config directory (typically `~/.config/zpm` on Linux):
+
+```
+registry.json
+daemon.pid
+daemon.log
+logs/<process>.log
+```
+
+---
+
+## Platforms
+
+<CardGrid>
+  <Card title="Linux" icon="linux">
+    **amd64, arm64** — auto-detected via `uname -m`.  
+    Installs to `~/.local/bin/`. Creates a systemd user service.  
+    `systemctl --user enable zpmd`
+  </Card>
+  <Card title="macOS" icon="apple">
+    **amd64 (Intel), arm64 (Apple Silicon)** — auto-detected.  
+    Installs to `~/.local/bin/`. Creates a LaunchAgent plist.  
+    `launchctl load ~/Library/LaunchAgents/com.zpm.daemon.plist`
+  </Card>
+  <Card title="Windows" icon="windows">
+    **amd64** — installs to `%LOCALAPPDATA%\zpm\bin`.  
+    Updates User PATH. Creates a Task Scheduler task when run as Administrator.
+  </Card>
+</CardGrid>
+
+---
+
+## Release
+
+Push a tag to publish cross-platform builds via GitHub Actions:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The pipeline builds: Linux amd64/arm64, macOS amd64/arm64, Windows amd64.
+
+---
+
+## Uninstall
+
+<Tabs>
+  <TabItem label="Linux">
+    ```bash
+    systemctl --user disable zpmd
+    rm ~/.local/bin/{zpm,zpmd}
+    # remove ZPM PATH export from ~/.bashrc or ~/.zshrc
+    ```
+  </TabItem>
+  <TabItem label="macOS">
+    ```bash
+    launchctl unload ~/Library/LaunchAgents/com.zpm.daemon.plist
+    rm -rf ~/.local/bin/{zpm,zpmd} ~/.zpm ~/Library/LaunchAgents/com.zpm.daemon.plist
+    # remove ZPM PATH export from ~/.zshrc or ~/.bash_profile
+    ```
+  </TabItem>
+  <TabItem label="Windows">
+    ```powershell
+    Unregister-ScheduledTask -TaskName "ZPM Daemon" -Confirm:$false
+    Remove-Item "$env:LOCALAPPDATA\zpm" -Recurse
+    # remove from User PATH environment variables manually
+    ```
+  </TabItem>
+</Tabs>
+
+---
+
+*Built by [shellhaki](https://github.com/shellhaki) — [haki.top](https://haki.top) · [x.com/haki_xer](https://x.com/haki_xer)*
