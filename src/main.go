@@ -569,8 +569,9 @@ func Uninstall() error {
 	fmt.Printf("  %s%s─────────────────────────────────────────────────────────────────%s\n", ColorDim, strings.Repeat("─", 33), ColorReset)
 	fmt.Println("  This complete removal window executes the following actions:")
 	fmt.Printf("    %s-%s Terminate background supervisor daemons safely\n", ColorRed, ColorReset)
-	fmt.Printf("    %s-%s Erase platform systemd/launchd service registration hooks\n", ColorRed, ColorReset)
-	fmt.Printf("    %s-%s Wipe local state directories, logging metrics, and caches\n\n", ColorRed, ColorReset)
+	fmt.Printf("    %s-%s Erase platform startup hooks\n", ColorRed, ColorReset)
+	fmt.Printf("    %s-%s Wipe local state directories, logging metrics, and caches\n", ColorRed, ColorReset)
+	fmt.Printf("    %s-%s Remove installed zpm/zpmd executable files\n\n", ColorRed, ColorReset)
 
 	fmt.Printf("  %sTo verify execution target parameters, type %syes%s%s to commit: ", ColorYellow, ColorBold, ColorReset, ColorYellow)
 	fmt.Print(ColorReset)
@@ -607,21 +608,125 @@ func Uninstall() error {
 		fmt.Printf("[%sDONE%s]\n", ColorGreen, ColorReset)
 	}
 
-	fmt.Printf("\n  %s•%s Target environment registries clean.\n\n", ColorGreen, ColorReset)
-	fmt.Printf("  %sTo delete lingering system platform executable binaries directly, run:%s\n", ColorGray, ColorReset)
-
-	exe, err := os.Executable()
-	if err == nil {
-		exeDir := filepath.Dir(exe)
-		fmt.Printf("    %srm -f %s/zpm %s/zpmd%s\n", ColorCyan, exeDir, exeDir, ColorReset)
+	fmt.Printf("    %-45s", "Removing installed executable files...")
+	err = uninstallInstallArtifacts()
+	if err != nil {
+		fmt.Printf("[%sWARN: %v%s]\n", ColorYellow, err, ColorReset)
 	} else {
-		fmt.Printf("    %srm -f ~/.local/bin/zpm ~/.local/bin/zpmd%s\n", ColorCyan, ColorReset)
+		fmt.Printf("[%sDONE%s]\n", ColorGreen, ColorReset)
 	}
 
-	fmt.Printf("\n  %sNote:%s Check profile definitions to ensure your PATH setups are clean:\n", ColorYellow, ColorReset)
-	fmt.Printf("    %s~/.bashrc%s, %s~/.zshrc%s, or %s~/.bash_profile%s\n\n", ColorDim, ColorReset, ColorDim, ColorReset, ColorDim, ColorReset)
+	fmt.Printf("\n  %s•%s Target environment registries clean.\n", ColorGreen, ColorReset)
+	if note := uninstallInstallArtifactNote(); note != "" {
+		fmt.Printf("  %sNote:%s %s\n", ColorYellow, ColorReset, note)
+	}
+	fmt.Println()
 
 	return nil
+}
+
+func removeExistingPaths(paths ...string) error {
+	seen := map[string]bool{}
+	var errs []error
+	for _, path := range paths {
+		path = strings.TrimSpace(path)
+		if path == "" {
+			continue
+		}
+		path = filepath.Clean(path)
+		if seen[path] {
+			continue
+		}
+		seen[path] = true
+
+		info, err := os.Lstat(path)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", path, err))
+			continue
+		}
+		if info.IsDir() {
+			err = os.RemoveAll(path)
+		} else {
+			err = os.Remove(path)
+		}
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			errs = append(errs, fmt.Errorf("%s: %w", path, err))
+		}
+	}
+	return errors.Join(errs...)
+}
+
+func knownExecutablePaths(names ...string) []string {
+	paths := []string{}
+	if exe, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exe)
+		for _, name := range names {
+			paths = append(paths, filepath.Join(exeDir, name))
+		}
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		for _, name := range names {
+			paths = append(paths, filepath.Join(home, ".local", "bin", name))
+		}
+	}
+	return paths
+}
+
+func removeShellPathEntries(rcNames []string, markers []string) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil
+	}
+	var errs []error
+	for _, rcName := range rcNames {
+		path := filepath.Join(home, rcName)
+		data, err := os.ReadFile(path)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", path, err))
+			continue
+		}
+		lines := strings.Split(string(data), "\n")
+		kept := make([]string, 0, len(lines))
+		changed := false
+		for i := 0; i < len(lines); i++ {
+			line := lines[i]
+			if line == "# ZPM (Zen Process Manager)" {
+				if i+1 < len(lines) && containsAny(lines[i+1], markers) {
+					i++
+					changed = true
+					continue
+				}
+			}
+			if strings.HasPrefix(strings.TrimSpace(line), "export PATH=") && containsAny(line, markers) {
+				changed = true
+				continue
+			}
+			kept = append(kept, line)
+		}
+		if !changed {
+			continue
+		}
+		err = os.WriteFile(path, []byte(strings.Join(kept, "\n")), 0644)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", path, err))
+		}
+	}
+	return errors.Join(errs...)
+}
+
+func containsAny(value string, needles []string) bool {
+	for _, needle := range needles {
+		if needle != "" && strings.Contains(value, needle) {
+			return true
+		}
+	}
+	return false
 }
 
 func Usage() {

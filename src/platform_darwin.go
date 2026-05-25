@@ -3,6 +3,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,8 +34,12 @@ func stopDaemonByName(force bool) {
 }
 
 func startupPlistPath() string {
+	return startupPlistPathFor("com.zpm.daemon.plist")
+}
+
+func startupPlistPathFor(name string) string {
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, "Library", "LaunchAgents", "dev.zpm.daemon.plist")
+	return filepath.Join(home, "Library", "LaunchAgents", name)
 }
 
 func installStartup() error {
@@ -50,7 +55,7 @@ func installStartup() error {
 	plist := `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-<key>Label</key><string>dev.zpm.daemon</string>
+<key>Label</key><string>com.zpm.daemon</string>
 <key>ProgramArguments</key><array><string>` + daemon + `</string></array>
 <key>RunAtLoad</key><true/>
 <key>KeepAlive</key><true/>
@@ -64,7 +69,34 @@ func installStartup() error {
 }
 
 func uninstallStartup() error {
-	plistPath := startupPlistPath()
-	exec.Command("launchctl", "unload", plistPath).Run()
-	return os.Remove(plistPath)
+	for _, item := range []struct {
+		label string
+		path  string
+	}{
+		{"com.zpm.daemon", startupPlistPathFor("com.zpm.daemon.plist")},
+		{"dev.zpm.daemon", startupPlistPathFor("dev.zpm.daemon.plist")},
+	} {
+		exec.Command("launchctl", "unload", item.path).Run()
+		exec.Command("launchctl", "remove", item.label).Run()
+	}
+	return removeExistingPaths(
+		startupPlistPathFor("com.zpm.daemon.plist"),
+		startupPlistPathFor("dev.zpm.daemon.plist"),
+	)
+}
+
+func uninstallInstallArtifacts() error {
+	paths := knownExecutablePaths("zpm", "zpmd")
+	if home, err := os.UserHomeDir(); err == nil {
+		paths = append(paths, filepath.Join(home, ".zpm"))
+	}
+	err := removeExistingPaths(paths...)
+	if cleanupErr := removeShellPathEntries([]string{".zshrc", ".bash_profile", ".bashrc"}, []string{".local/bin"}); cleanupErr != nil {
+		err = errors.Join(err, cleanupErr)
+	}
+	return err
+}
+
+func uninstallInstallArtifactNote() string {
+	return "Restart your shell or reload your profile so PATH changes take effect."
 }
