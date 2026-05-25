@@ -26,7 +26,7 @@ import { Card, CardGrid, Code, Tabs, TabItem } from '@astrojs/starlight/componen
   </TabItem>
   <TabItem label="Windows (PowerShell)">
     ```powershell
-    iex (curl.exe -UseBasicParsing https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install-windows.ps1)
+    irm https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install-windows.ps1 | iex
     ```
   </TabItem>
   <TabItem label="From source">
@@ -43,6 +43,7 @@ After installation:
 ```bash
 zpm --help          # see available commands
 zpm list            # list managed processes
+zpm tui             # open the animated dashboard
 zpm start script.js # start managing a process
 ```
 
@@ -69,6 +70,9 @@ zpm start script.js # start managing a process
   <Card title="Startup on boot" icon="laptop">
     Native integration with systemd, LaunchAgent, and Task Scheduler. One command to install.
   </Card>
+  <Card title="Terminal dashboard" icon="terminal">
+    Use `zpm tui`, `zpm ui`, or `zpm tux` for an animated live dashboard that adapts to compact and wide terminals.
+  </Card>
   <Card title="Ecosystem config" icon="open-book">
     Declare all your processes in a single `zpm.config.json`. Version-controllable and shareable.
   </Card>
@@ -84,6 +88,7 @@ zpm start script.js # start managing a process
 ```bash
 zpm start "bun index" --name api --follow
 zpm status
+zpm tui
 zpm stop api
 zpm restart api
 zpm purge api
@@ -119,6 +124,19 @@ zpm stop api
 zpm restart api
 zpm purge api
 ```
+
+---
+
+## Terminal dashboard
+
+```bash
+zpm tui
+zpm ui
+zpm tux
+zpm status --watch
+```
+
+The live dashboard refreshes process status, animates daemon activity, and keeps the layout usable from narrow split panes to wide terminals.
 
 ---
 

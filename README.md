@@ -20,7 +20,7 @@ curl -sL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh
 
 **Windows (PowerShell as Administrator):**
 ```powershell
-iex (curl.exe -UseBasicParsing https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install-windows.ps1)
+irm https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install-windows.ps1 | iex
 ```
 
 ### What Gets Installed
@@ -35,6 +35,7 @@ iex (curl.exe -UseBasicParsing https://raw.githubusercontent.com/shellhaki/zpm/m
 zpm --help              # See available commands
 zpmd                    # Start daemon (or auto-starts on boot)
 zpm list                # List managed processes
+zpm tui                 # Open the animated terminal dashboard
 zpm start script.js     # Start managing a process
 ```
 
@@ -88,6 +89,7 @@ Linux uses user systemd, macOS uses LaunchAgent, Windows uses Task Scheduler.
 ```bash
 zpp start "bun index" --name api --follow
 zpp status
+zpp tui
 zpp stop api
 zpp restart api
 zpp start api
@@ -122,6 +124,17 @@ zpp stop api
 zpp restart api
 zpp purge api
 ```
+
+## Terminal Dashboard
+
+```bash
+zpm tui
+zpm ui
+zpm tux
+zpm status --watch
+```
+
+The dashboard refreshes live, animates daemon activity, adapts to narrow and wide terminals, and lets you move through processes with `j/k` or arrow keys.
 
 ## Ecosystem Config
 

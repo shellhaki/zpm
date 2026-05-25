@@ -49,7 +49,7 @@ main() {
         Windows)
             echo -e "${YELLOW}Detected Windows system - requires PowerShell${NC}"
             echo -e "${YELLOW}Run the following command in PowerShell as Administrator:${NC}"
-            echo "iex (curl.exe -UseBasicParsing https://raw.githubusercontent.com/${REPO}/main/scripts/install-windows.ps1)"
+            echo "irm https://raw.githubusercontent.com/${REPO}/main/scripts/install-windows.ps1 | iex"
             exit 0
             ;;
         *)

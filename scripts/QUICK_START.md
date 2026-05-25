@@ -9,7 +9,7 @@ curl -sL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh
 
 ### Windows (PowerShell as Administrator)
 ```powershell
-iex (curl.exe -UseBasicParsing https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install-windows.ps1)
+irm https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install-windows.ps1 | iex
 ```
 
 ---

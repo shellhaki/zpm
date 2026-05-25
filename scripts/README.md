@@ -17,12 +17,14 @@ curl -sL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh
 ### Windows (PowerShell)
 Run **PowerShell as Administrator**, then:
 ```powershell
-iex (curl.exe -UseBasicParsing https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install-windows.ps1)
+irm https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install-windows.ps1 | iex
 ```
 
 Or with a specific version:
 ```powershell
-& curl.exe -UseBasicParsing https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install-windows.ps1 | Invoke-Expression -ArgumentList "v0.1.0"
+$script = irm https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install-windows.ps1
+$block = [scriptblock]::Create($script)
+& $block -Version "v0.1.0"
 ```
 
 ## What Gets Installed
@@ -84,9 +86,9 @@ curl -sL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh
 
 ### Windows
 ```powershell
-$InstallDir = "C:\Program Files\zpm"; `
-iex (curl.exe -UseBasicParsing https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install-windows.ps1 `
-  -ArgumentList $Version, $InstallDir)
+$script = irm https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install-windows.ps1
+$block = [scriptblock]::Create($script)
+& $block -Version "latest" -InstallDir "C:\Program Files\zpm"
 ```
 
 ## Manual Installation (Build from Source)

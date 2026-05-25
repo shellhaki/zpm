@@ -489,75 +489,6 @@ func PrintProcess(res Response) {
 	fmt.Printf("  %s•%s %s\n", dotColor, ColorReset, res.Message)
 }
 
-func PrintStatus(processes []Process) {
-	if len(processes) == 0 {
-		fmt.Printf("  %sNo active processes found under supervisor tracking.%s\n", ColorGray, ColorReset)
-		return
-	}
-
-	fmt.Println()
-	fmt.Printf("  %s%-18s %-10s %-8s %-10s %-12s %-10s %-8s %s\n",
-		ColorReset+ColorBold, "APP NAME", "STATUS", "PID", "MEMORY", "UPTIME", "RESTARTS", "HEALTH", "COMMAND"+ColorReset)
-	fmt.Printf("  %s%s%s\n", ColorDim, strings.Repeat("─", 94), ColorReset)
-
-	for _, p := range processes {
-		var statusStr string
-		switch p.Status {
-		case "running":
-			statusStr = fmt.Sprintf("%srunning%s", ColorGreen, ColorReset)
-		case "stopped":
-			statusStr = fmt.Sprintf("%sstopped%s", ColorYellow, ColorReset)
-		case "errored", "failed":
-			statusStr = fmt.Sprintf("%serrored%s", ColorRed, ColorReset)
-		default:
-			statusStr = p.Status
-		}
-
-		var healthStr string
-		if p.Status == "running" {
-			if p.Healthy {
-				healthStr = fmt.Sprintf("%sok%s", ColorGreen, ColorReset)
-			} else {
-				healthStr = fmt.Sprintf("%sbad%s", ColorRed, ColorReset)
-			}
-		} else {
-			healthStr = fmt.Sprintf("%s--%s", ColorGray, ColorReset)
-		}
-
-		pidStr := "--"
-		if p.Pid > 0 {
-			pidStr = strconv.Itoa(p.Pid)
-		}
-
-		memStr := "--"
-		if p.Status == "running" {
-			memStr = FormatBytes(p.MemoryRssKB)
-		}
-
-		uptimeStr := "--"
-		if p.Status == "running" {
-			uptimeStr = FormatUptime(p.UptimeSeconds)
-		}
-
-		displayCmd := p.Command
-		if len(displayCmd) > 22 {
-			displayCmd = displayCmd[:19] + "..."
-		}
-
-		fmt.Printf("  %-18s %-19s %-8s %-10s %-12s %-10d %-17s %s%s%s\n",
-			p.Name,
-			statusStr,
-			pidStr,
-			memStr,
-			uptimeStr,
-			p.RestartCount,
-			healthStr,
-			ColorDim, displayCmd, ColorReset,
-		)
-	}
-	fmt.Println()
-}
-
 func LoadEcosystem(path string, envName string) ([]Request, error) {
 	if path == "" {
 		path = "zpm.config.json"
@@ -703,7 +634,8 @@ func Usage() {
 	fmt.Printf("    %-42s %sInstruct graceful instance drop signals%s\n", "stop <app_name>", ColorDim, ColorReset)
 	fmt.Printf("    %-42s %sForce rapid instance reset actions%s\n", "restart <app_name>", ColorDim, ColorReset)
 	fmt.Printf("    %-42s %sWipe specific context records and log dumps%s\n", "purge <app_name>", ColorDim, ColorReset)
-	fmt.Printf("    %-42s %sView live tabular diagnostic overview fields%s\n\n", "status | list", ColorDim, ColorReset)
+	fmt.Printf("    %-42s %sView live tabular diagnostic overview fields%s\n", "status | list", ColorDim, ColorReset)
+	fmt.Printf("    %-42s %sOpen animated responsive terminal dashboard%s\n\n", "tui | ui | tux", ColorDim, ColorReset)
 
 	fmt.Printf("  %sDaemon Supervision & States:%s\n", ColorCyan, ColorReset)
 	fmt.Printf("    %-42s %sModify daemon thread runtime states%s\n", "daemon start|stop|reload", ColorDim, ColorReset)
@@ -846,12 +778,26 @@ func main() {
 		}
 		PrintProcess(res)
 	case "list", "status":
+		if len(args) > 1 && (args[1] == "--watch" || args[1] == "-w" || args[1] == "--tui") {
+			err := RunTUI()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
+				os.Exit(1)
+			}
+			return
+		}
 		res, err := Send(Request{Action: "status"})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
 			os.Exit(1)
 		}
 		PrintStatus(res.Processes)
+	case "tui", "ui", "tux", "dashboard":
+		err := RunTUI()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
+			os.Exit(1)
+		}
 	case "uninstall":
 		err := Uninstall()
 		if err != nil {
