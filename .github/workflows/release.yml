@@ -1,7 +1,5 @@
 name: release
 
-run-name: release ${{ github.event.inputs.tag || github.ref_name }}
-
 on:
   push:
     tags:
@@ -11,13 +9,10 @@ on:
       tag:
         description: "Existing release tag to publish, for example v1.0.1"
         required: true
-        type: string
+        default: "v1.0.1"
 
 permissions:
   contents: write
-
-env:
-  RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
 
 jobs:
   build:
@@ -43,18 +38,36 @@ jobs:
             ext: ".exe"
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout manual release tag
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ inputs.tag }}
+
+      - name: Checkout pushed tag
+        if: github.event_name == 'push'
+        uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version: "1.22.2"
 
-      - name: Validate release tag
+      - name: Validate manual release tag
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
           case "${RELEASE_TAG}" in
             v*) ;;
             *) echo "Release tag must start with v, got ${RELEASE_TAG}"; exit 1 ;;
+          esac
+
+      - name: Validate pushed release tag
+        if: github.event_name == 'push'
+        run: |
+          case "${GITHUB_REF_NAME}" in
+            v*) ;;
+            *) echo "Release tag must start with v, got ${GITHUB_REF_NAME}"; exit 1 ;;
           esac
 
       - name: Test daemon
@@ -84,16 +97,27 @@ jobs:
 
   publish:
     needs: build
-    if: startsWith(github.event.inputs.tag || github.ref_name, 'v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
-      - uses: softprops/action-gh-release@v2
+
+      - name: Publish manual release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.RELEASE_TAG }}
+          tag_name: ${{ inputs.tag }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: dist/*.tar.gz
+
+      - name: Publish pushed tag release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: dist/*.tar.gz
