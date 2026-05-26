@@ -381,6 +381,9 @@ func publishRelease(ctx context.Context, cfg config, cmd command) error {
 				return fmt.Errorf("invalid release tag %q", cmd.tag)
 			}
 			tag = ensureVPrefix(cmd.tag)
+			if taggedHead, err := localTagSHA(cfg.root, tag); err == nil && taggedHead != "" && taggedHead != head {
+				return fmt.Errorf("tag %s already points to %s, but current HEAD is %s; checkout that tagged commit to publish it, or publish a new version", tag, shortSHA(taggedHead), shortSHA(head))
+			}
 			return nil
 		}
 		versions, err := collectVersions(ctx, cfg)
@@ -619,6 +622,12 @@ func (c githubClient) ensureRelease(ctx context.Context, tag string, head string
 	}
 	var rel release
 	err = c.doJSON(ctx, http.MethodPost, "/releases", body, &rel)
+	if err != nil {
+		var ghErr githubError
+		if errors.As(err, &ghErr) && (ghErr.status == http.StatusForbidden || ghErr.status == http.StatusUnauthorized) {
+			return release{}, fmt.Errorf("token cannot create GitHub releases for %s; use a classic PAT with repo scope, or a fine-grained PAT for %s with Contents: Read and write", c.cfg.repo, c.cfg.repo)
+		}
+	}
 	return rel, err
 }
 
@@ -777,6 +786,14 @@ func remoteTagSHA(root string, tag string) (string, error) {
 		return "", nil
 	}
 	return fields[0], nil
+}
+
+func localTagSHA(root string, tag string) (string, error) {
+	out, err := gitOutput(root, "rev-parse", "--verify", "refs/tags/"+tag)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(out), nil
 }
 
 func parseVersionLines(out string) []version {
