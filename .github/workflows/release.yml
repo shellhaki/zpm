@@ -40,15 +40,15 @@ jobs:
     steps:
       - name: Checkout manual release tag
         if: github.event_name == 'workflow_dispatch'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.3.1
         with:
           ref: ${{ inputs.tag }}
 
       - name: Checkout pushed tag
         if: github.event_name == 'push'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.3.1
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5.5.0
         with:
           go-version: "1.22.2"
 
@@ -90,7 +90,7 @@ jobs:
           tar -czf dist/zpm-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz -C dist zpm-${{ matrix.goos }}-${{ matrix.goarch }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: zpm-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/*.tar.gz
@@ -99,14 +99,14 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4.3.0
         with:
           path: dist
           merge-multiple: true
 
       - name: Publish manual release
         if: github.event_name == 'workflow_dispatch'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.6.2
         with:
           tag_name: ${{ inputs.tag }}
           generate_release_notes: true
@@ -115,7 +115,7 @@ jobs:
 
       - name: Publish pushed tag release
         if: github.event_name == 'push'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.6.2
         with:
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
