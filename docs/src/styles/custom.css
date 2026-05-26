@@ -1,73 +1,353 @@
-/* Mobile-first responsive fixes for ZPM docs */
+/* Monochrome polish for the ZPM Starlight docs. */
 
-/* Scrollable tables on small screens */
-table {
-  display: block;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  white-space: nowrap;
-  max-width: 100%;
+:root,
+::backdrop {
+  color-scheme: dark;
+  --sl-color-white: hsl(0, 0%, 99%);
+  --sl-color-gray-1: hsl(0, 0%, 93%);
+  --sl-color-gray-2: hsl(0, 0%, 76%);
+  --sl-color-gray-3: hsl(0, 0%, 61%);
+  --sl-color-gray-4: hsl(0, 0%, 38%);
+  --sl-color-gray-5: hsl(0, 0%, 23%);
+  --sl-color-gray-6: hsl(0, 0%, 11%);
+  --sl-color-black: hsl(0, 0%, 4%);
+  --sl-color-accent-low: hsl(0, 0%, 16%);
+  --sl-color-accent: hsl(0, 0%, 88%);
+  --sl-color-accent-high: hsl(0, 0%, 100%);
+  --sl-color-text: hsl(0, 0%, 82%);
+  --sl-color-text-accent: hsl(0, 0%, 100%);
+  --sl-color-text-invert: hsl(0, 0%, 3%);
+  --sl-color-bg: hsl(0, 0%, 5%);
+  --sl-color-bg-nav: hsla(0, 0%, 4%, 0.88);
+  --sl-color-bg-sidebar: hsl(0, 0%, 7%);
+  --sl-color-bg-inline-code: hsl(0, 0%, 14%);
+  --sl-color-bg-accent: hsl(0, 0%, 100%);
+  --sl-color-hairline-light: hsl(0, 0%, 18%);
+  --sl-color-hairline: hsl(0, 0%, 15%);
+  --sl-color-hairline-shade: hsl(0, 0%, 10%);
+  --sl-color-backdrop-overlay: hsla(0, 0%, 0%, 0.72);
+  --sl-content-width: 48rem;
+  --sl-content-pad-x: 1.125rem;
+  --sl-line-height: 1.72;
+  --sl-shadow-sm: 0 1px 1px hsla(0, 0%, 0%, 0.24), 0 8px 24px hsla(0, 0%, 0%, 0.12);
+  --sl-shadow-md: 0 18px 44px hsla(0, 0%, 0%, 0.28);
+  --sl-shadow-lg: 0 30px 80px hsla(0, 0%, 0%, 0.38);
 }
 
-/* Don't nowrap short tables on large screens */
+:root[data-theme='light'],
+[data-theme='light'] ::backdrop {
+  color-scheme: light;
+  --sl-color-white: hsl(0, 0%, 4%);
+  --sl-color-gray-1: hsl(0, 0%, 12%);
+  --sl-color-gray-2: hsl(0, 0%, 23%);
+  --sl-color-gray-3: hsl(0, 0%, 40%);
+  --sl-color-gray-4: hsl(0, 0%, 58%);
+  --sl-color-gray-5: hsl(0, 0%, 78%);
+  --sl-color-gray-6: hsl(0, 0%, 93%);
+  --sl-color-gray-7: hsl(0, 0%, 97%);
+  --sl-color-black: hsl(0, 0%, 100%);
+  --sl-color-accent-low: hsl(0, 0%, 91%);
+  --sl-color-accent: hsl(0, 0%, 7%);
+  --sl-color-accent-high: hsl(0, 0%, 0%);
+  --sl-color-text: hsl(0, 0%, 18%);
+  --sl-color-text-accent: hsl(0, 0%, 0%);
+  --sl-color-text-invert: hsl(0, 0%, 100%);
+  --sl-color-bg: hsl(0, 0%, 99%);
+  --sl-color-bg-nav: hsla(0, 0%, 100%, 0.9);
+  --sl-color-bg-sidebar: hsl(0, 0%, 97%);
+  --sl-color-bg-inline-code: hsl(0, 0%, 93%);
+  --sl-color-bg-accent: hsl(0, 0%, 0%);
+  --sl-color-hairline-light: hsl(0, 0%, 91%);
+  --sl-color-hairline: hsl(0, 0%, 88%);
+  --sl-color-hairline-shade: hsl(0, 0%, 83%);
+  --sl-color-backdrop-overlay: hsla(0, 0%, 0%, 0.46);
+  --sl-shadow-sm: 0 1px 1px hsla(0, 0%, 0%, 0.06), 0 8px 22px hsla(0, 0%, 0%, 0.04);
+  --sl-shadow-md: 0 18px 44px hsla(0, 0%, 0%, 0.1);
+  --sl-shadow-lg: 0 30px 80px hsla(0, 0%, 0%, 0.14);
+}
+
+html {
+  background: var(--sl-color-bg);
+}
+
+body {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--sl-color-white), transparent 95%), transparent 18rem),
+    var(--sl-color-bg);
+}
+
+.header {
+  backdrop-filter: blur(18px);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--sl-color-white), transparent 92%);
+}
+
+.site-title {
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.hero {
+  position: relative;
+  min-height: min(36rem, calc(100vh - var(--sl-nav-height) - 8rem));
+  overflow: hidden;
+}
+
+.hero::before,
+.hero::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  pointer-events: none;
+}
+
+.hero::before {
+  inset-block: 0;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--sl-color-white), transparent 96%), transparent 22%, transparent 78%, color-mix(in srgb, var(--sl-color-white), transparent 96%)),
+    repeating-linear-gradient(90deg, transparent 0 4rem, color-mix(in srgb, var(--sl-color-white), transparent 96%) 4rem calc(4rem + 1px));
+  opacity: 0.8;
+}
+
+.hero::after {
+  top: 18%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--sl-color-white), transparent 76%), transparent);
+}
+
+.hero > img {
+  position: relative;
+  z-index: 1;
+  width: min(58vw, 15rem);
+  border: 1px solid color-mix(in srgb, var(--sl-color-white), transparent 78%);
+  border-radius: 1rem;
+  box-shadow:
+    0 0 0 0.65rem color-mix(in srgb, var(--sl-color-white), transparent 96%),
+    var(--sl-shadow-lg);
+}
+
+:root[data-theme='light'] .hero > img {
+  border-color: color-mix(in srgb, var(--sl-color-white), transparent 84%);
+  box-shadow:
+    0 0 0 0.65rem color-mix(in srgb, var(--sl-color-white), transparent 96%),
+    var(--sl-shadow-md);
+}
+
+.hero .stack {
+  position: relative;
+  z-index: 1;
+}
+
+.hero h1 {
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.hero .tagline {
+  color: var(--sl-color-gray-2);
+  max-width: 58ch;
+}
+
+.hero .actions {
+  align-items: center;
+}
+
+.sl-link-button {
+  border-radius: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.sl-link-button:hover {
+  transform: translateY(-1px);
+}
+
+.sl-link-button.primary {
+  background: var(--sl-color-white);
+  border-color: var(--sl-color-white);
+  color: var(--sl-color-black);
+}
+
+.sl-link-button.primary:hover {
+  background: var(--sl-color-gray-1);
+  border-color: var(--sl-color-gray-1);
+  color: var(--sl-color-black);
+}
+
+.sl-link-button.minimal,
+.sl-link-button.secondary {
+  border-color: color-mix(in srgb, var(--sl-color-white), transparent 72%);
+  color: var(--sl-color-white);
+  padding-inline: 1.125rem;
+}
+
+.sl-link-button.minimal:hover,
+.sl-link-button.secondary:hover {
+  background: color-mix(in srgb, var(--sl-color-white), transparent 94%);
+  border-color: color-mix(in srgb, var(--sl-color-white), transparent 45%);
+  color: var(--sl-color-white);
+}
+
+.card {
+  border-color: color-mix(in srgb, var(--sl-color-white), transparent 86%);
+  border-radius: 0.5rem;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--sl-color-white), transparent 96%), transparent),
+    var(--sl-color-black);
+  box-shadow: var(--sl-shadow-sm);
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--sl-color-white), transparent 66%);
+  box-shadow: var(--sl-shadow-md);
+  transform: translateY(-2px);
+}
+
+.card .icon {
+  background: color-mix(in srgb, var(--sl-color-white), transparent 94%);
+  border-color: color-mix(in srgb, var(--sl-color-white), transparent 76%);
+  color: var(--sl-color-white);
+}
+
+.card .body {
+  color: var(--sl-color-gray-2);
+}
+
+[role='tablist'] {
+  border-bottom-color: color-mix(in srgb, var(--sl-color-white), transparent 84%);
+}
+
+.tab > [role='tab'] {
+  --sl-tab-color-border: transparent;
+  border-radius: 0.45rem 0.45rem 0 0;
+  color: var(--sl-color-gray-3);
+}
+
+.tab > [role='tab']:hover {
+  color: var(--sl-color-white);
+  background: color-mix(in srgb, var(--sl-color-white), transparent 95%);
+}
+
+.tab [role='tab'][aria-selected='true'] {
+  --sl-tab-color-border: var(--sl-color-white);
+  color: var(--sl-color-white);
+}
+
+.sl-markdown-content h2 {
+  padding-top: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--sl-color-white), transparent 88%);
+}
+
+.sl-markdown-content hr {
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--sl-color-white), transparent 88%);
+  margin-block: 2.25rem;
+}
+
+.sl-markdown-content a:not(:where(.not-content *)) {
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.22em;
+}
+
+.sl-markdown-content :not(pre) > code {
+  border: 1px solid color-mix(in srgb, var(--sl-color-white), transparent 86%);
+  border-radius: 0.35rem;
+  padding: 0.08rem 0.28rem;
+  word-break: break-word;
+}
+
+.sl-markdown-content pre {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid color-mix(in srgb, var(--sl-color-white), transparent 84%);
+  border-radius: 0.5rem;
+  box-shadow: var(--sl-shadow-sm);
+  -webkit-overflow-scrolling: touch;
+}
+
+.sl-markdown-content table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid color-mix(in srgb, var(--sl-color-white), transparent 86%);
+  border-radius: 0.5rem;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sl-markdown-content th {
+  color: var(--sl-color-white);
+  background: color-mix(in srgb, var(--sl-color-white), transparent 94%);
+}
+
+.sl-markdown-content tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--sl-color-white), transparent 97%);
+}
+
+@media (min-width: 50rem) {
+  .hero {
+    min-height: min(38rem, calc(100vh - var(--sl-nav-height) - 5rem));
+  }
+
+  .hero > img {
+    width: min(100%, 19rem);
+    border-radius: 1.25rem;
+  }
+}
+
 @media (min-width: 768px) {
-  table {
+  .sl-markdown-content table {
     display: table;
     white-space: normal;
   }
 }
 
-/* Code blocks: horizontal scroll, no overflow bleed */
-pre {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  max-width: 100%;
-}
-
-/* Inline code: allow wrapping so it doesn't push layout */
-:not(pre) > code {
-  word-break: break-word;
-}
-
-/* Hero tagline: smaller on mobile */
-@media (max-width: 480px) {
-  .hero .tagline {
-    font-size: 1rem;
-  }
-
-  .hero .sl-flex {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .hero .sl-flex a {
-    text-align: center;
-    justify-content: center;
-  }
-}
-
-/* CardGrid: force single column on small screens */
 @media (max-width: 600px) {
   .sl-card-grid {
     grid-template-columns: 1fr !important;
   }
 }
 
-/* Tabs: allow tab labels to scroll horizontally on tiny screens */
 @media (max-width: 480px) {
-  [role="tablist"] {
+  .hero {
+    min-height: auto;
+    padding-block: 2rem 1.25rem;
+  }
+
+  .hero .tagline {
+    font-size: 1rem;
+  }
+
+  .hero .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero .actions a {
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+  }
+
+  [role='tablist'] {
+    flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    flex-wrap: nowrap;
   }
 
-  [role="tab"] {
+  [role='tab'] {
     white-space: nowrap;
   }
-}
 
-/* Content area: reduce horizontal padding on mobile */
-@media (max-width: 480px) {
   .sl-markdown-content {
     padding-inline: 0.75rem;
   }

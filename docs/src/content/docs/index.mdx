@@ -3,6 +3,9 @@ title: ZPM — Process Manager
 description: A small, sharp process manager for apps you want to keep alive.
 template: splash
 hero:
+  image:
+    file: ../../../public/zpm.jpg
+    alt: ZPM logo
   tagline: Keep your apps alive. Crash restart, clusters, log rotation, health checks, and ecosystem configs — without turning your terminal into a carnival.
   actions:
     - text: Get started
@@ -70,7 +73,7 @@ zpm start script.js # start managing a process
   <Card title="Startup on boot" icon="laptop">
     Native integration with systemd, LaunchAgent, and Task Scheduler. One command to install.
   </Card>
-  <Card title="Terminal dashboard" icon="terminal">
+  <Card title="Terminal dashboard" icon="desktop">
     Use `zpm tui`, `zpm ui`, or `zpm tux` for an animated live dashboard that adapts to compact and wide terminals.
   </Card>
   <Card title="Ecosystem config" icon="open-book">
@@ -226,7 +229,7 @@ logs/<process>.log
     Installs to `~/.local/bin/`. Creates a LaunchAgent plist.  
     `launchctl load ~/Library/LaunchAgents/com.zpm.daemon.plist`
   </Card>
-  <Card title="Windows" icon="windows">
+  <Card title="Windows" icon="window">
     **amd64** — installs to `%LOCALAPPDATA%\zpm\bin`.  
     Updates User PATH. Creates a Task Scheduler task when run as Administrator.
   </Card>
@@ -239,8 +242,8 @@ logs/<process>.log
 Push a tag to publish cross-platform builds via GitHub Actions:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 The pipeline builds: Linux amd64/arm64, macOS amd64/arm64, Windows amd64.

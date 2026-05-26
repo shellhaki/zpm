@@ -11,7 +11,7 @@ curl -sL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh
 
 Or with a specific version:
 ```bash
-curl -sL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh | bash -s v0.1.0
+curl -sL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh | bash -s v1.0.0
 ```
 
 ### Windows (PowerShell)
@@ -24,7 +24,7 @@ Or with a specific version:
 ```powershell
 $script = irm https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install-windows.ps1
 $block = [scriptblock]::Create($script)
-& $block -Version "v0.1.0"
+& $block -Version "v1.0.0"
 ```
 
 ## What Gets Installed

@@ -210,7 +210,7 @@ curl -sL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh
 
 ### Specific Version
 ```bash
-curl -sL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh | bash -s v0.1.0
+curl -sL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh | bash -s v1.0.0
 ```
 
 ### Verify After Installation

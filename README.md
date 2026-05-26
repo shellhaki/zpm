@@ -269,7 +269,7 @@ $InstallDir = "C:\Program Files\zpm"
 
 **Linux/macOS (specific version as first argument):**
 ```bash
-curl -sL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh | bash -s v0.1.0
+curl -sL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh | bash -s v1.0.0
 ```
 
 ### Troubleshooting
@@ -325,8 +325,8 @@ Located in the `scripts/` directory:
 Push a tag to publish cross-platform builds:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
 The release pipeline builds:

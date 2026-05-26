@@ -167,7 +167,7 @@ irm https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install-windows
 
 **Linux/macOS:**
 ```bash
-curl -sL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh | bash -s v0.1.0
+curl -sL https://raw.githubusercontent.com/shellhaki/zpm/main/scripts/install.sh | bash -s v1.0.0
 ```
 
 ### With Custom Install Directory
