@@ -422,7 +422,7 @@ func publishRelease(ctx context.Context, cfg config, cmd command) error {
 			return nil
 		}
 		client := githubClient{cfg: cfg, http: http.DefaultClient}
-		return client.ensureRemoteTag(ctx, tag, head)
+		return ensureRemoteTag(ctx, cfg, client, tag, head)
 	}); err != nil {
 		return err
 	}
@@ -537,6 +537,27 @@ func ensureLocalTag(root string, tag string, head string) error {
 		return nil
 	}
 	return runSimple(root, "git", "tag", tag)
+}
+
+func ensureRemoteTag(ctx context.Context, cfg config, client githubClient, tag string, head string) error {
+	if remoteSHA, err := remoteTagSHA(cfg.root, tag); err == nil && remoteSHA != "" {
+		if remoteSHA != head {
+			return fmt.Errorf("remote tag %s points to %s, not %s", tag, shortSHA(remoteSHA), shortSHA(head))
+		}
+		fmt.Fprintf(cfg.out, "    remote tag already exists on origin\n")
+		return nil
+	}
+
+	if err := client.ensureRemoteTag(ctx, tag, head); err == nil {
+		return nil
+	} else {
+		var ghErr githubError
+		if errors.As(err, &ghErr) && (ghErr.status == http.StatusForbidden || ghErr.status == http.StatusUnauthorized) {
+			fmt.Fprintf(cfg.out, "    github api cannot create refs with this token, falling back to git push origin %s\n", tag)
+			return pushTag(cfg.root, tag)
+		}
+		return err
+	}
 }
 
 type githubClient struct {
@@ -746,6 +767,18 @@ func remoteGitTags(root string) ([]version, error) {
 	return parseVersionLines(out), nil
 }
 
+func remoteTagSHA(root string, tag string) (string, error) {
+	out, err := gitOutput(root, "ls-remote", "--tags", "origin", "refs/tags/"+tag)
+	if err != nil {
+		return "", err
+	}
+	fields := strings.Fields(strings.TrimSpace(out))
+	if len(fields) == 0 {
+		return "", nil
+	}
+	return fields[0], nil
+}
+
 func parseVersionLines(out string) []version {
 	var versions []version
 	for _, line := range strings.Split(out, "\n") {
@@ -910,6 +943,10 @@ func runSimple(root string, name string, args ...string) error {
 		return fmt.Errorf("%s %s: %s", name, strings.Join(args, " "), strings.TrimSpace(string(data)))
 	}
 	return nil
+}
+
+func pushTag(root string, tag string) error {
+	return runSimple(root, "git", "push", "origin", tag)
 }
 
 func findRepoRoot() (string, error) {
