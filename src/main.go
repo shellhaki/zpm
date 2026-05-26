@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/shellhaki/zpmcli/publish"
 )
 
 const addr = "127.0.0.1:4848"
@@ -749,6 +751,11 @@ func Usage() {
 	fmt.Printf("  %sEcosystem Workspace Targets:%s\n", ColorCyan, ColorReset)
 	fmt.Printf("    %-42s %sBootstrap nested ecosystem definition matrices%s\n\n", "ecosystem start [config.json]", ColorDim, ColorReset)
 
+	fmt.Printf("  %sRelease Publishing:%s\n", ColorCyan, ColorReset)
+	fmt.Printf("    %-42s %sList GitHub release versions%s\n", "publish --list", ColorDim, ColorReset)
+	fmt.Printf("    %-42s %sBuild release archives locally%s\n", "publish build", ColorDim, ColorReset)
+	fmt.Printf("    %-42s %sBuild, tag, release, and upload assets%s\n\n", "publish patch|minor|major", ColorDim, ColorReset)
+
 	fmt.Printf("  %sSystem Maintenance Suites:%s\n", ColorCyan, ColorReset)
 	fmt.Printf("    %-42s %sPurge supervisor structures from host profiles%s\n\n", "uninstall", ColorDim, ColorReset)
 }
@@ -899,6 +906,12 @@ func main() {
 		PrintStatus(res.Processes)
 	case "tui", "ui", "tux", "dashboard":
 		err := RunTUI()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
+			os.Exit(1)
+		}
+	case "publish":
+		err := publish.Run(args[1:])
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s[error]%s %v\n", ColorRed, ColorReset, err)
 			os.Exit(1)
